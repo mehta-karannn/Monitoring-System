@@ -1,12 +1,12 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import cv2
 import numpy as np
 import base64
-import time
+import logging
 
 app = FastAPI()
 
-# Heart rate and SpO2 estimation function from your original code
+# Heart rate and SpO2 estimation function
 def estimate_heart_rate_spo2(roi, fps):
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -39,11 +39,8 @@ def get_roi(frame):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    
-    cap = cv2.VideoCapture(0)  # Initialize video capture device
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    start_time = time.time()
-    
+    logging.info("WebSocket connection established")
+
     try:
         while True:
             # Receive frame data as base64 from the client
@@ -56,6 +53,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # Extract ROI and perform heart rate & SpO2 estimation
             roi = get_roi(frame)
             if roi is not None:
+                fps = 30  # You can adjust this value or send it from the frontend
                 heart_rate, spo2 = estimate_heart_rate_spo2(roi, fps)
 
                 # Send back the heart rate and SpO2 values to the client
@@ -63,11 +61,12 @@ async def websocket_endpoint(websocket: WebSocket):
             else:
                 await websocket.send_text("No face detected")
     
+    except WebSocketDisconnect:
+        logging.warning("WebSocket connection closed")
     except Exception as e:
-        print(f"Error: {e}")
+        logging.error(f"Error: {e}")
     
     finally:
-        cap.release()  # Release the video capture
         await websocket.close()
 
 if __name__ == "__main__":
