@@ -1,10 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 import cv2
 import numpy as np
 import base64
-import logging
+import time
 
 app = FastAPI()
+
+@app.get("/")
+async def root():
+    return {"message": "FastAPI backend for heart rate and SpO2 monitoring"}
 
 # Heart rate and SpO2 estimation function
 def estimate_heart_rate_spo2(roi, fps):
@@ -39,7 +43,6 @@ def get_roi(frame):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    logging.info("WebSocket connection established")
 
     try:
         while True:
@@ -53,7 +56,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # Extract ROI and perform heart rate & SpO2 estimation
             roi = get_roi(frame)
             if roi is not None:
-                fps = 30  # You can adjust this value or send it from the frontend
+                fps = 30  # Set a default FPS value
                 heart_rate, spo2 = estimate_heart_rate_spo2(roi, fps)
 
                 # Send back the heart rate and SpO2 values to the client
@@ -61,14 +64,12 @@ async def websocket_endpoint(websocket: WebSocket):
             else:
                 await websocket.send_text("No face detected")
     
-    except WebSocketDisconnect:
-        logging.warning("WebSocket connection closed")
     except Exception as e:
-        logging.error(f"Error: {e}")
+        print(f"Error: {e}")
     
     finally:
         await websocket.close()
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=10000)
