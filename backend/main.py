@@ -14,13 +14,13 @@ def estimate_heart_rate_spo2(roi, fps):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
     intensity = np.mean(thresh)
-    heart_rate = intensity / fps * 10  # Estimated heart rate logic from intensity
+    heart_rate = intensity / fps * 12  # Estimated heart rate logic from intensity
     
     blue_channel, green_channel, red_channel = cv2.split(roi)
     mean_red = np.mean(red_channel)
     mean_infrared = np.mean(green_channel)
     ratio = mean_red / mean_infrared
-    spo2 = -45.060 * ratio * ratio + 30.354 * ratio + 94.845  # SpO2 calculation
+    spo2 = -45.060 * ratio * ratio + 30.354 * ratio + 100.845  # SpO2 calculation
     
     return heart_rate, spo2
 
